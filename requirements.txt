@@ -1,0 +1,8 @@
+pydub
+openai-whisper
+openai
+torch
+numpy
+# ffmpeg es un requisito externo y debe estar instalado en el sistema (ya lo instalaste con brew)
+# Opcional: pyaudioop (fallback para builds que no incluyen audioop). No siempre está disponible en PyPI.
+# pyaudioop
