@@ -15,17 +15,27 @@ import javax.swing.Renderer;
 import com.google.gson.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.*;
+
+import javafx.scene.Parent;
 import org.apache.xmlbeans.XmlCursor;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
+import javafx.application.Application;
+
 /**
  * Hello world!
  *
  */
-public class App {
+public class App extends Application {
     // creamos todas la variables comunes
     private static final String TEMPLATE_PATH = "resources/template.docx";
     private static final String FORMAT = "yyyy-MM-dd";
@@ -45,6 +55,10 @@ public class App {
     private String resumen;
     private HttpClient client = HttpClient.newHttpClient();
 
+    public App() throws IOException {
+        // Constructor vacío - FXML se cargará en start()
+    }
+
     public static boolean esWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
     }
@@ -53,7 +67,8 @@ public class App {
 
     // metodo para agregar el encabesado al documento (usa Apache POI XWPF para
     // .docx)
-    private XWPFDocument crearDocument(String titulo, String maestro, String materia) throws FileNotFoundException, IOException {
+    private XWPFDocument crearDocument(String titulo, String maestro, String materia)
+            throws FileNotFoundException, IOException {
         this.titulo = titulo;
         this.maestro = maestro;
         this.materia = materia;
@@ -242,7 +257,7 @@ public class App {
                     // asumimos que cada línea con ruta es un segmento
                     if (line.trim().length() > 0 && (line.trim().startsWith("input/") || line.trim().startsWith("/"))) {
                         segments.add(line.trim());
-                        
+
                     }
                 }
                 int exitCode = process.waitFor();
@@ -478,8 +493,6 @@ public class App {
         }
     }
 
-    // ---- helpers ----
-
     private static String escapeJson(String texto) {
         return "\"" + texto
                 .replace("\\", "\\\\")
@@ -496,7 +509,7 @@ public class App {
         return json.substring(start, end).replace("\\n", "\n");
     }
 
-    private static String comversacionajustada(Path archivoEntrada) throws IOException {
+    private static String comversacionAjustada(Path archivoEntrada) throws IOException {
         String areglado;
         String textoOriginal = Files.lines(archivoEntrada)
                 .map(linea -> linea.replaceAll("\\[.*?\\]", "").trim())
@@ -506,6 +519,7 @@ public class App {
         return areglado;
     }
 
+    // el documento nesesita un formato para que no se vea feo
     public String formatearTextoParaDocumento(String textoIA) {
 
         // 1. Normalizar espacios
@@ -525,37 +539,82 @@ public class App {
         return texto.trim();
     }
 
-    public static void main(String[] args) throws FileNotFoundException, IOException {
-        App app = new App();
+    /**
+     * hasta aqui termina la logica del programa, aparteir de aca, enpiesan los
+     * eventos de la GUI,
+     * aunque esta interfaz grafica es simple, cumple con lo que nesesito.
+     * lo bueno es que existen erramientas para hacer las interfazes graficas,
+     * porque tener que escribir todo a mano seria tedioso. y posible mente tardaria
+     * mas en realizarlo
+     * y no es porque pueda ser tardado sino porque ma daria tanta pereza hacerlo
+     * que facilmente no lo haria
+     */
 
-        System.out.println("inicio de programa");
-        Scanner imput = new Scanner(System.in);
-        System.out.println("que materia?:");
-        String materia = imput.nextLine();
-        System.out.println("que maestro?:");
-        String maestro = imput.nextLine();
 
-        System.out.println("dame el titulo de la clase:");
-        String titulo = imput.nextLine();
-        imput.close();
-        
-         app.identificarInputPath();
-         app.procesarAudio();
-         
-        app.crearResumenEnLocal();
 
-        try {
-            app.combersacion = app.convertirATextoEntendible(Paths.get(COMBERSACION_PATH)) + "\n" +
-                    "comversacion: \n" +
-                    comversacionajustada(Paths.get(COMBERSACION_PATH));
-        } catch (IOException e) {
-            System.err.println("Error al procesar la conversación: " + e.getMessage());
-            e.printStackTrace();
+        @FXML
+        private TextField textFile;
+
+        @FXML
+        private TextField maestroField;
+
+        @FXML
+        private TextField materiaField;
+
+        @FXML
+        private TextField tema;
+
+        @FXML
+        private TextArea textArea;
+
+        @FXML
+        private void fileClick() {
+            textFile.setText("furula");
         }
-        app.combersacion = app.formatearTextoParaDocumento(app.combersacion);
-        app.resumen = app.formatearTextoParaDocumento(app.resumen);
-        app.guardar(app.crearDocument(titulo, maestro, materia), Path.of(OUTPUT_FILE));
 
+    @Override
+    public void start(Stage stage) throws Exception {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("app.fxml"));
+        loader.setController(this);
+        Parent root = loader.load();
+
+        stage.setScene(new Scene(root));
+        stage.show();
     }
 
+    public static void main(String[] args) {
+        launch(args);
+    }
+/*
+         * System.out.println("inicio de programa");
+         * Scanner imput = new Scanner(System.in);
+         * System.out.println("que materia?:");
+         * String materia = imput.nextLine();
+         * System.out.println("que maestro?:");
+         * String maestro = imput.nextLine();
+         * 
+         * System.out.println("dame el titulo de la clase:");
+         * String titulo = imput.nextLine();
+         * imput.close();
+         * 
+         * app.identificarInputPath();
+         * app.procesarAudio();
+         * 
+         * app.crearResumenEnLocal();
+         * 
+         * try {
+         * app.combersacion =
+         * app.convertirATextoEntendible(Paths.get(COMBERSACION_PATH)) + "\n" +
+         * "comversacion: \n" +
+         * comversacionAjustada(Paths.get(COMBERSACION_PATH));
+         * } catch (IOException e) {
+         * System.err.println("Error al procesar la conversación: " + e.getMessage());
+         * e.printStackTrace();
+         * }
+         * app.combersacion = app.formatearTextoParaDocumento(app.combersacion);
+         * app.resumen = app.formatearTextoParaDocumento(app.resumen);
+         * app.guardar(app.crearDocument(titulo, maestro, materia),
+         * Path.of(OUTPUT_FILE));
+         */
 }
+   
